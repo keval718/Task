@@ -89,16 +89,16 @@ app.post("/reply", (req, res, next) => {
     res.sendStatus(204);
   });
 });
-app.get("/reply", async (req, res, next) => {
-  db.all(ALL_REPLY_QUERY, (err, rows) => {
-    if (err) {
-      next(err);
-    }
+  app.get("/reply", async (req, res, next) => {
+    db.all(ALL_REPLY_QUERY, (err, rows) => {
+      if (err) {
+        next(err);
+      }
 
-    const comments = rows.map(unflatten);
-    res.json(comments);
+      const comments = rows.map(unflatten);
+      res.json(comments);
+    });
   });
-});
 
 app.use((err, req, res, next) => {
   console.error(err);

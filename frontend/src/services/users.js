@@ -1,7 +1,7 @@
 import Axios from "axios";
 
 export async function getUsers() {
-  const res = await Axios.get("http://localhost:3001/users");
+  const res = await Axios.get("https://treasure1.herokuapp.com/users");
   const users = res.data;
   return users;
 }

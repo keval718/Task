@@ -76,7 +76,6 @@ export function reducer(state = initialState, action) {
 function* fetchCommentsSagaWorker() {
   try {
     const comments = yield call(CommentsService.getComments);
-  console.log(comments+"queryu of comments")
     yield put(fetchCommentsSuccess(comments));
   } catch (e) {
     yield put(fetchCommentsFailure(e));
