@@ -1,69 +1,111 @@
-# Senior Full Stack Engineer Take-Home Challenge
+<b><h1>What I Did In This Project</h1></b>
+  
 
-![CI](https://github.com/umar-ahmed/treasured-senior-full-stack-challenge/workflows/CI/badge.svg)
+In Backend Folder in Setup.js file
 
-## :star2: Getting Started
+First of all I have created a reply table  in which I took comment_id and User_id as foreign key
 
-1. Clone repo
-1. Run `yarn install` to install workspace dependencies
-1. Run `yarn backend:setup` to create and seed database
-1. Run `yarn start` to start up the frontend and backend development servers
+CREATE TABLE IF NOT EXISTS reply (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content TEXT DEFAULT '' NOT NULL,
+    user_id INTEGER NOT NULL,
+    comment_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE,
+    FOREIGN KEY (comment_id) REFERENCES comment (id) ON DELETE CASCADE
+);
 
-## :ballot_box_with_check: To Do (~2 hours)
+Then in server.js file 
 
-> **Disclaimer:** Times noted in this section are in "dev" time units. We don't expect you to complete the entire challenge in a single sitting if you don't want to, nor do we want to limit your creativity. However, in order to judge candidates fairly, we give a rough estimate of how much time we expect for it to take to complete each section. Best of luck! :smile:
+<b>I have created api for inserting reply and getting reply</b>
 
-### Coding (~90 mins)
+The query I have fired for inserting reply is :-
+ const INSERT_REPLY_QUERY = `
+INSERT INTO reply
+  (content, user_id,comment_id)
+VALUES
+  (?, ?,?);
+`; 
 
-- [ ] Add support for comment replies (ie. threaded comments). It's up to you how you want to present the replies and whether or not you want to support multiple levels of nesting. However, make sure that you take into account the usability of your comments system.
-- [ ] Refactor `App` component to split it up into modular React components.
-- [ ] Deploy the application (both frontend and backend) somewhere online at a public URL (we'll be using this to access your submission) and add the URL to the top of this README.
+The query I have fired for getting reply for paricular comment_id is:-
 
-### Follow-up Questions (~30 mins)
+const ALL_REPLY_QUERY = `
+SELECT r.* ,c.id as 'comment_id'
+FROM reply r JOIN comment c ON r.comment_id = c.id
+`;
 
-After completeing the coding portion of the challenge, please answer the following questions by editing this README:
+<b>Api for inserting reply to Database</b>
+  
+app.post("/reply", (req, res, next) => {
+  const { user_id,comment_id, content } = req.body;
+  db.run(INSERT_REPLY_QUERY, [content, user_id,comment_id], (err) => {
+    if (err){
+      next(err); 
+    }
+    res.sendStatus(204);
+  });
+});
 
-**What was the most difficult part of the coding challenge for you? What was the easiest?**
+<b>Api for getting reply from Database</b>
+  
+  app.get("/reply", async (req, res, next) => {
+  db.all(ALL_REPLY_QUERY, (err, rows) => {
+    if (err) {
+      next(err);
+    }
+    const comments = rows.map(unflatten);
+    res.json(comments);
+  });
+});
 
-_Add your answer here_
 
-**If there’s one thing you could change about the starter code that was given to you, what would you change and why?**
+<h2> Frontend Part </h2>
 
-_Add your answer here_
+<b>First of all in service folder I have created service using Axios for fetching the data from database</b>
 
-**If a product manager asked you to implement the replies feature for a real product, what questions would you ask them? Explain your rationale.**
+export async function createReply(userId, commentID,content) {
+  const res = await Axios.post("http://localhost:3001/reply", {
+    user_id: userId,
+    comment_id:commentID,
+    content: content,
+  });
+  const comment = res.data;
+  return comment;
+}
 
-_Add your answer here_
+export async function getReply() {
+  const res = await Axios.get("http://localhost:3001/reply");
+  console.log(res.data + "vn");
+  const comments = res.data;
+  return comments;
+}
 
-**What considerations would you make if you were asked to modify this comment system to support 1000 comments? How about 1 million? (Be as specific as possible about what changes you would make to the backend, frontend, deployment, etc.)**
+Then In redux Folder I have created reply.js file In which I  have created  Following things<br>
 
-_Add your answer here_
+1)Create Action Types<br>
+2)Create functions fetchReply,fetchReplySuccess,fetchReplyFailure<br>
+3)Created createReply function<br>
+4)create Initial state in which assigned reply array where all replies are coming form services created<br>
+5)create a reducer<br>
+6)create function like fetchReplySagaWorker(),createReplySagaWorker(action),ReplySagaWatcher(),ReplySelector(state) <br>
 
-## :file_folder: Project Structure
+Then in the index.js file of reducer I have added reply.js to reducer and sagas <br>
 
-This project is setup using [Yarn workspaces](https://classic.yarnpkg.com/en/docs/workspaces/) with the following workspaces:
+export const reducer = combineReducers({
+  comments: CommentsStore.reducer,
+  users: UsersStore.reducer,
+  reply:ReplyStore.reducer
+});<br>
+export const sagas = [
+  CommentsStore.commentsSagaWatcher,
+  UsersStore.usersSagaWatcher,
+  ReplyStore.ReplySagaWatcher
+];<br>
 
-- **frontend**
-  - Contains a CRA-bootstrapped app that connects to the backend REST API
-  - Uses `redux` and `redux-saga` to do state management and async
-  - Uses `axios` for data fetching (see `services` folder)
-- **backend**
-  - Contains a simple Express server that serves two resources: `users` and `comments`
-  - Data is stored in a SQLite database (schema is defined in the [`setup.js` script](./backend/setup.js)) and is manually seeded with data
-  - Database is accessed using [sqlite3](https://www.npmjs.com/package/sqlite3) (but feel free to switch this out with a query building library like `knex` or anything else you prefer)
 
-You will also find a pre-defined GitHub Actions workflow at `.github/workflows/` that builds the frontend React app on each push to the master branch. **Make sure that this workflow is still running successfully when you are done the challenge as we'll be looking at that as well.**
-
-Also, take a look at the scripts in the [package.json](package.json), especially the `backend` ones, as they should make it easier when you are modifying the schema of the database.
-
-## :ship: Docker Sample
-
-In the **backend** folder you will find a dockerfile that provides a sample of you you can run the backend with docker.
-
-You can run the backed in docker with the following commands
-
-```
-cd backend
-docker build . -t challenge
-docker run --detach --name challenge-container --publish 3001:3001 --restart always challenge
-```
+<b> Then in the Hooks folder I have created useReply.js file </b> 
+<br>
+<br>
+<b> Then In the Main index.js file of component folder</b> </br>
+First of all created button,textbox for reply <br>
+Created handelReply function in which added logic to send reply to database and notify user 
